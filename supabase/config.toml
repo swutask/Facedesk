@@ -1,6 +1,6 @@
 [auth.third_party.clerk]
 enabled = true
-domain = "divine-satyr-72.clerk.accounts.dev"
+domain = "clerk.facedesk.co"
 
 [functions.create-checkout-session]
 enabled = true

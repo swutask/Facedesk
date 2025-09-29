@@ -9,7 +9,7 @@ import { useSupabase } from "@/context/supabaseContext";
 
 const ProviderDashboard = () => {
   const { supabase } = useSupabase();
-    const { user } = useUser();
+  const { user } = useUser();
 
   const [roomsThisMonth, setRoomsThisMonth] = useState(0);
   const [roomsLastMonth, setRoomsLastMonth] = useState(0);
@@ -29,33 +29,28 @@ const ProviderDashboard = () => {
     });
   };
 
-const fetchUserPreferences = async () => {
-  if (!supabase || !user) return;
+  const fetchUserPreferences = async () => {
+    if (!supabase || !user) return;
 
-  const userPreferences = {
-    user_id: user.id,  // User's ID from Clerk
-    
+    const userPreferences = {
+      user_id: user.id, // User's ID from Clerk
+    };
+
+    const { data, error } = await supabase
+      .from("user_preferences")
+      .upsert([userPreferences], { onConflict: ["user_id"] })
+      .single();
+
+    if (error) {
+      console.error("Error fetching user preferences:", error);
+    } else {
+      console.log("Fetched data:", data);
+    }
   };
 
-  const { data, error } = await supabase
-    .from("user_preferences")
-    .upsert([userPreferences], { onConflict: ["user_id"] })
-    .single(); 
-
-  if (error) {
-    console.error("Error fetching user preferences:", error);
-  } else {
-    console.log("Fetched data:", data);
-  }
-};
-
-useEffect(() => {
-  fetchUserPreferences();
-}, [supabase, user]);  
-
-
-
-    
+  useEffect(() => {
+    fetchUserPreferences();
+  }, [supabase, user]);
 
   // Fetch rooms booked in date range (unique room count)
   const fetchRoomsBookedInRange = async (startDate: Date, endDate: Date) => {
@@ -190,8 +185,8 @@ useEffect(() => {
         now.getMonth() - 1,
         1
       );
-      
-      const endOfLastMonth = new Date(startOfThisMonth.getTime() - 1); 
+
+      const endOfLastMonth = new Date(startOfThisMonth.getTime() - 1);
 
       const thisMonth = await fetchEarnings(startOfThisMonth, startOfNextMonth);
       const lastMonth = await fetchEarnings(startOfLastMonth, endOfLastMonth);
@@ -210,7 +205,6 @@ useEffect(() => {
     }
     return ((current - previous) / previous) * 100;
   };
-
 
   const navigate = useNavigate();
 

@@ -326,7 +326,7 @@ const EnterpriseBookings = () => {
         </Button>
       </div>
 
-    <Tabs value={activeTab} onValueChange={setActiveTab}>
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="upcoming">
             Upcoming ({filterBookings(upcomingBookings).length})
@@ -348,14 +348,18 @@ const EnterpriseBookings = () => {
               <BookingCard key={booking.id} booking={booking} />
             ))
           ) : (
-             <Card>
+            <Card>
               <CardContent className="p-12 text-center">
                 <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  {searchQuery ? 'No matching bookings' : 'No upcoming bookings'}
+                  {searchQuery
+                    ? "No matching bookings"
+                    : "No upcoming bookings"}
                 </h3>
                 <p className="text-gray-600 mb-4">
-                  {searchQuery ? 'Try a different search term' : 'Book your first FaceDesk room to get started.'}
+                  {searchQuery
+                    ? "Try a different search term"
+                    : "Book your first FaceDesk room to get started."}
                 </p>
                 {!searchQuery && (
                   <Button
@@ -376,9 +380,29 @@ const EnterpriseBookings = () => {
               <BookingCard key={booking.id} booking={booking} />
             ))
           ) : (
-            <p className="text-gray-600 text-center">
-              No in-progress bookings.
-            </p>
+            <Card>
+              <CardContent className="p-12 text-center">
+                <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  {searchQuery
+                    ? "No matching bookings"
+                    : "No In Progres bookings"}
+                </h3>
+                <p className="text-gray-600 mb-4">
+                  {searchQuery
+                    ? "Try a different search term"
+                    : "Book your first FaceDesk room to get started."}
+                </p>
+                {!searchQuery && (
+                  <Button
+                    className="bg-blue-600 hover:bg-blue-700"
+                    onClick={() => navigate("/enterprise/booking")}
+                  >
+                    Book a Room
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
           )}
         </TabsContent>
 
@@ -388,7 +412,29 @@ const EnterpriseBookings = () => {
               <BookingCard key={booking.id} booking={booking} />
             ))
           ) : (
-            <p className="text-gray-600 text-center">No completed bookings.</p>
+            <Card>
+              <CardContent className="p-12 text-center">
+                <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  {searchQuery
+                    ? "No matching bookings"
+                    : "No Completed bookings"}
+                </h3>
+                <p className="text-gray-600 mb-4">
+                  {searchQuery
+                    ? "Try a different search term"
+                    : "Book your first FaceDesk room to get started."}
+                </p>
+                {!searchQuery && (
+                  <Button
+                    className="bg-blue-600 hover:bg-blue-700"
+                    onClick={() => navigate("/enterprise/booking")}
+                  >
+                    Book a Room
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
           )}
         </TabsContent>
 
@@ -398,7 +444,29 @@ const EnterpriseBookings = () => {
               <BookingCard key={booking.id} booking={booking} />
             ))
           ) : (
-            <p className="text-gray-600 text-center">No cancelled bookings.</p>
+            <Card>
+              <CardContent className="p-12 text-center">
+                <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  {searchQuery
+                    ? "No matching bookings"
+                    : "No Cancelled bookings"}
+                </h3>
+                <p className="text-gray-600 mb-4">
+                  {searchQuery
+                    ? "Try a different search term"
+                    : "Book your first FaceDesk room to get started."}
+                </p>
+                {!searchQuery && (
+                  <Button
+                    className="bg-blue-600 hover:bg-blue-700"
+                    onClick={() => navigate("/enterprise/booking")}
+                  >
+                    Book a Room
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
           )}
         </TabsContent>
       </Tabs>

@@ -679,7 +679,7 @@ const handleOtpSubmit = async () => {
     const { data: candidateData, error: candidateError } = await supabase
       .from("candidates")
       .select(
-        "otp, otp_expiry, company_user_id, room_id, email_address, interview_date, interview_time"
+        "otp, otp_expiry, company_user_id, room_id, full_name, interview_date, interview_time"
       )
       .eq("id", selectedBooking.id)
       .single();
@@ -720,55 +720,15 @@ const handleOtpSubmit = async () => {
     // -----------------------
     // Update Booking Status
     // -----------------------
-    // updateBookingStatus(supabase, selectedBooking.id, "in-progress");
+    await updateBookingStatus(supabase, selectedBooking.id, "in-progress");
 
-    // toast({
-    //   title: "Check-In Successful",
-    //   description: `Candidate ${selectedBooking.candidate} has been checked in.`,
-    // });
-
-    // -----------------------
-    // Enterprise Email Flow
-    // -----------------------
-    const { data: enterprisePreferences } = await supabase
-      .from("user_preferences")
-      .select("candidate_checkins")
-      .eq("user_id", candidateData.company_user_id)
-      .single();
-
-    if (enterprisePreferences?.candidate_checkins) {
-      const { data: enterpriseProfile } = await supabase
-        .from("user_profiles")
-        .select("email")
-        .eq("id", candidateData.company_user_id)
-        .single();
-
-      if (enterpriseProfile?.email) {
-        const emailContent = CandidateCheckInConfirmation({
-          candidateName: selectedBooking.candidate,
-          roomName: "Interview Room", // fallback, real room fetched later
-          interviewDate: candidateData.interview_date,
-          interviewTime: candidateData.interview_time,
-        });
-
-        await fetch("https://nlrrjygzhhlrichlnswl.supabase.co/functions/v1/send-email", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            to: enterpriseProfile.email,
-            subject: `Check-In Confirmation for ${selectedBooking.candidate}`,
-            html: emailContent,
-          }),
-        });
-
-        console.log("✅ Enterprise check-in confirmation email sent to:", enterpriseProfile.email);
-      }
-    }
+    toast({
+      title: "Check-In Successful",
+      description: `Candidate ${candidateData.full_name} has been checked in.`,
+    });
 
     // -----------------------
-    // Provider Email Flow
+    // Fetch Room Data
     // -----------------------
     const { data: roomData } = await supabase
       .from("rooms")
@@ -776,43 +736,112 @@ const handleOtpSubmit = async () => {
       .eq("id", candidateData.room_id)
       .single();
 
-    if (roomData) {
+    const roomName = roomData?.room_name || "N/A";
+
+    // -----------------------
+    // Enterprise Email
+    // -----------------------
+    if (candidateData.company_user_id) {
+      const { data: enterprisePrefs } = await supabase
+        .from("user_preferences")
+        .select("candidate_checkins")
+        .eq("user_id", candidateData.company_user_id)
+        .single();
+
+      if (enterprisePrefs?.candidate_checkins) {
+        const { data: enterpriseProfile } = await supabase
+          .from("user_profiles")
+          .select("email, first_name")
+          .eq("id", candidateData.company_user_id)
+          .single();
+
+        if (enterpriseProfile?.email) {
+          const formattedDateTime = `${candidateData.interview_date} ${candidateData.interview_time}`;
+
+          const enterpriseEmail = `
+            <div style="font-family: Arial, sans-serif; line-height:1.5;">
+              <p>Hi ${enterpriseProfile.first_name || "there"},</p>
+              <p>This is to inform you that the candidate who booked the room has successfully checked in.</p>
+              <p><b>Room Name:</b> ${roomName}</p>
+              <p><b>Candidate Name:</b> ${candidateData.full_name}</p>
+              <p><b>Check-In Date & Time:</b> ${formattedDateTime}</p>
+              <p>Please proceed with the necessary arrangements for the candidate.</p>
+              <p>Best regards,<br/>FaceDesk Team</p>
+            </div>
+          `;
+
+          await fetch(
+            "https://nlrrjygzhhlrichlnswl.supabase.co/functions/v1/send-email",
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                to: enterpriseProfile.email,
+                subject: `Candidate Checked-In: ${candidateData.full_name}`,
+                html: enterpriseEmail,
+              }),
+            }
+          );
+
+          console.log(
+            "✅ Enterprise check-in email sent to:",
+            enterpriseProfile.email
+          );
+        }
+      }
+    }
+
+    // -----------------------
+    // Provider Email
+    // -----------------------
+    if (roomData?.user_id) {
       const providerUserId = roomData.user_id;
 
-      const { data: providerPreferences } = await supabase
+      const { data: providerPrefs } = await supabase
         .from("user_preferences")
         .select("candidate_checkins")
         .eq("user_id", providerUserId)
         .single();
 
-      if (providerPreferences?.candidate_checkins) {
+      if (providerPrefs?.candidate_checkins) {
         const { data: providerProfile } = await supabase
           .from("user_profiles")
-          .select("email")
+          .select("email, first_name")
           .eq("id", providerUserId)
           .single();
 
         if (providerProfile?.email) {
-          const emailContent = CandidateCheckInConfirmation({
-            candidateName: selectedBooking.candidate,
-            roomName: roomData.room_name,
-            interviewDate: candidateData.interview_date,
-            interviewTime: candidateData.interview_time,
-          });
+          const formattedDateTime = `${candidateData.interview_date} ${candidateData.interview_time}`;
 
-        await fetch("https://nlrrjygzhhlrichlnswl.supabase.co/functions/v1/send-email", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            to: providerProfile.email,
-            subject: `Candidate Check-In: ${selectedBooking.candidate}`,
-            html: emailContent,
-          }),
-        });
-        
-          console.log("✅ Provider check-in alert email sent to:", providerProfile.email);
+          const providerEmail = `
+            <div style="font-family: Arial, sans-serif; line-height:1.5;">
+              <p>Hi ${providerProfile.first_name || "there"},</p>
+              <p>We are pleased to inform you that your room has been successfully checked in by the candidate who booked it.</p>
+              <p><b>Room Name:</b> ${roomName}</p>
+              <p><b>Candidate Name:</b> ${candidateData.full_name}</p>
+              <p><b>Check-In Date & Time:</b> ${formattedDateTime}</p>
+              <p>Please ensure the room is prepared and available as required for the candidate.</p>
+              <p>Thank you for your support.<br/>Best regards,<br/>FaceDesk Team</p>
+            </div>
+          `;
+
+          await fetch(
+            "https://nlrrjygzhhlrichlnswl.supabase.co/functions/v1/send-email",
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                to: providerProfile.email,
+                subject: `Room Checked-In by Candidate: ${candidateData.full_name}`,
+                html: providerEmail,
+              }),
+            }
+          );
+
+          console.log(
+            "✅ Provider check-in email sent to:",
+            providerProfile.email
+          );
         }
       }
     }
@@ -823,7 +852,6 @@ const handleOtpSubmit = async () => {
     setOtpDialog(false);
     setOtp("");
     setSelectedBooking(null);
-
   } catch (err) {
     console.error("Unexpected error in OTP flow:", err);
     toast({
@@ -833,6 +861,7 @@ const handleOtpSubmit = async () => {
     });
   }
 };
+
 
 
 

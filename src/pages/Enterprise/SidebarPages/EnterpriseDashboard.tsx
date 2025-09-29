@@ -32,35 +32,28 @@ const EnterpriseDashboard = () => {
 
   const [recentActivity, setRecentActivity] = useState([]);
 
-const fetchUserPreferences = async () => {
-  if (!supabase || !user) return;
+  const fetchUserPreferences = async () => {
+    if (!supabase || !user) return;
 
-  // Data you want to upsert
-  const userPreferences = {
-    user_id: user.id,  // Ensure this is your user's ID
-   
+    // Data you want to upsert
+    const userPreferences = {
+      user_id: user.id, // Ensure this is your user's ID
+    };
+
+    const { data, error } = await supabase
+      .from("user_preferences")
+      .upsert([userPreferences], { onConflict: ["user_id"] }); // 'user_id' is the unique identifier for this table
+
+    if (error) {
+      console.error("Error upserting user preferences:", error);
+    } else {
+      console.log("Upserted data:", data);
+    }
   };
 
-  const { data, error } = await supabase
-    .from("user_preferences")
-    .upsert([userPreferences], { onConflict: ["user_id"] });  // 'user_id' is the unique identifier for this table
-
-  if (error) {
-    console.error("Error upserting user preferences:", error);
-  } else {
-    console.log("Upserted data:", data);
-  }
-};
-
-useEffect(() => {
-  fetchUserPreferences();
-}, [supabase]);  
-
-
-
-
-
-
+  useEffect(() => {
+    fetchUserPreferences();
+  }, [supabase, user]);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -141,7 +134,7 @@ useEffect(() => {
     `
       )
       .eq("interview_status", "upcoming")
-          .limit(5);
+      .limit(5);
 
     if (!error && data) {
       setUpcomingInterviews(data);
@@ -376,7 +369,6 @@ useEffect(() => {
                     >
                       {interview.interview_status}
                     </span>
-                    
                   </div>
                 </div>
               ))}

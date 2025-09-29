@@ -23,7 +23,13 @@ const Header = () => {
               className="w-8 h-8 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center"
               onClick={handleClick}
             >
-              <span className="text-white font-bold text-sm">FD </span>
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center">
+                <img
+                  src="/Facedeskent.png"
+                  alt="FD Logo"
+                  className="w-full h-full object-contain"
+                />
+              </div>
             </div>
             <span className="text-2xl font-bold text-gray-900">FaceDesk</span>
           </div>

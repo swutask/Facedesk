@@ -8,13 +8,13 @@ export default function SelectRole() {
   const navigate = useNavigate();
   const { supabase, loading: supabaseLoading } = useSupabase(); // ✅ get loading flag too
 
-  const [selectedRole, setSelectedRole] = useState<"enterprise" | "provider" | "">("");
+  const [selectedRole, setSelectedRole] = useState<
+    "enterprise" | "provider" | ""
+  >("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   // Redirect if user already has a role
-
- 
 
   useEffect(() => {
     if (user?.unsafeMetadata?.role) {
@@ -22,8 +22,6 @@ export default function SelectRole() {
       if (role === "enterprise") navigate("/enterprise");
       else if (role === "provider") navigate("/provider");
     }
-
-    
   }, [user, navigate]);
 
   const handleSubmit = async () => {
@@ -33,7 +31,6 @@ export default function SelectRole() {
     }
 
     if (!supabase || supabaseLoading) {
-      
       return;
     }
 
@@ -47,14 +44,16 @@ export default function SelectRole() {
       });
 
       // Step 2: Insert into Supabase
-      const { error: insertError } = await supabase.from("user_profiles").insert({
-        id: user.id,
-        email: user.primaryEmailAddress?.emailAddress,
-        first_name: user.firstName,
-        last_name: user.lastName,
-        user_role: selectedRole,
-      });
-      
+      const { error: insertError } = await supabase
+        .from("user_profiles")
+        .insert({
+          id: user.id,
+          email: user.primaryEmailAddress?.emailAddress,
+          first_name: user.firstName,
+          last_name: user.lastName,
+          user_role: selectedRole,
+        });
+
       if (insertError) {
         console.error("Supabase insert error:", insertError);
         throw insertError;
@@ -62,7 +61,6 @@ export default function SelectRole() {
 
       // Step 3: Redirect
       navigate(selectedRole === "enterprise" ? "/enterprise" : "/provider");
-
     } catch (err) {
       console.error(err);
       setError("Failed to assign role. Please try again.");
@@ -75,9 +73,16 @@ export default function SelectRole() {
     <section className="min-h-screen flex items-center justify-center bg-gradient-to-b from-white to-slate-100 px-4">
       <div className="w-full max-w-md text-center">
         <div className="flex flex-col items-center mb-8">
-          <div className="bg-purple-600 text-white w-12 h-12 rounded-xl flex items-center justify-center font-bold text-lg">
-            FD
+          <div className="w-12 h-12 rounded-xl overflow-hidden flex items-center justify-center">
+            <div className="w-12 h-12 rounded-xl overflow-hidden flex items-center justify-center">
+              <img
+                src="/Facedeskent.png"
+                alt="FD"
+                className="w-full h-full object-cover"
+              />
+            </div>
           </div>
+
           <h1 className="text-2xl font-semibold text-gray-900 mt-4">
             FaceDesk
           </h1>
