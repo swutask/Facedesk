@@ -386,7 +386,7 @@ const EnterpriseBookings = () => {
                 <h3 className="text-lg font-medium text-gray-900 mb-2">
                   {searchQuery
                     ? "No matching bookings"
-                    : "No In Progres bookings"}
+                    : "No In Progress bookings"}
                 </h3>
                 <p className="text-gray-600 mb-4">
                   {searchQuery

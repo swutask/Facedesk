@@ -74,8 +74,7 @@ const BookingPayment = () => {
     customNote: "",
     date: "",
     time: "",
-    duration: "1",
-    duration: "1",
+    duration: "1", 
     specialRequests: "",
     termsAccepted: false,
   });

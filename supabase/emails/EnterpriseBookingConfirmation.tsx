@@ -2,34 +2,45 @@ export const EnterpriseBookingConfirmation = ({
   booking,
   platform_fee,
   roomName,
+  firstName,
 }: {
   booking: {
     candidateName: string;
     date: string;
     time: string;
-    durationHours: number;
+    duration: string; // now a string like "1 hr"
     totalAmount: number;
   };
   platform_fee: number;
   roomName: string;
+  firstName?: string;
 }) => {
   const formattedDateTime = `${booking.date} ${booking.time}`;
 
   return `
-  <div style="font-family: Arial, sans-serif; line-height:1.5; color: #111827;">
-    <p>Hi,</p>
-
-    <p>This is to confirm that the candidate has successfully booked the interview room.</p>
-
-    <p><b>Room Name:</b> ${roomName}</p>
-    <p><b>Candidate Name:</b> ${booking.candidateName}</p>
-    <p><b>Date & Time:</b> ${formattedDateTime}</p>
-    <p><b>Duration:</b> ${booking.durationHours} hrs</p>
-    <p><b>Platform Fees:</b> ₹${platform_fee}</p>
-
-    <p>Please ensure the interview room is prepared and ready for the candidate.</p>
-
-    <p>Best regards,<br/>FaceDesk Team</p>
+  <div style="font-family: Arial, sans-serif; background-color: #f9fafb; padding: 20px; color: #111827;">
+    <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.08);">
+      <div style="background: linear-gradient(135deg, #059669, #10b981); color: #ffffff; padding: 24px; text-align: center;">
+        <h1 style="margin: 0; font-size: 22px; color: #000000;">Booking Confirmed ✅</h1>
+      </div>
+      <div style="padding: 24px;">
+        <p style="font-size: 16px; margin-bottom: 16px;">Hi ${firstName ?? ""},</p>
+        <p style="font-size: 16px; margin-bottom: 16px;">This is to confirm that the candidate has successfully booked the interview room.</p>
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+          <tbody>
+            <tr><td style="padding: 8px 0; font-weight: bold; width: 150px;">Room Name</td><td>${roomName}</td></tr>
+            <tr><td style="padding: 8px 0; font-weight: bold;">Candidate Name</td><td>${booking.candidateName}</td></tr>
+            <tr><td style="padding: 8px 0; font-weight: bold;">Date & Time</td><td>${formattedDateTime}</td></tr>
+            <tr><td style="padding: 8px 0; font-weight: bold;">Duration</td><td>${booking.duration}</td></tr>
+            <tr><td style="padding: 8px 0; font-weight: bold;">Platform Fees</td><td>₹${platform_fee}</td></tr>
+          </tbody>
+        </table>
+        
+      </div>
+      <div style="background: #f3f4f6; padding: 16px; text-align: center; font-size: 13px; color: #6b7280;">
+        © ${new Date().getFullYear()} FaceDesk · Secure In-Person Interviews
+      </div>
+    </div>
   </div>
   `;
 };

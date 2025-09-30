@@ -21,10 +21,25 @@ const supabase = createClient(
 const webhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET")!;
 const resend = new Resend(Deno.env.get("RESEND_API_KEY")!);
 
-serve(async (req) => {
-  if (req.method !== "POST") {
-    return new Response("Method not allowed", { status: 405 });
+// Utility: Format duration
+const formatDuration = (hours: number) => (hours === 1 ? `${hours} hr` : `${hours} hrs`);
+
+// Utility: Send email with Resend
+const sendEmail = async (to: string, subject: string, html: string) => {
+  try {
+    await resend.emails.send({
+      from: "FaceDesk <no-reply@updates.facedesk.co>",
+      to,
+      subject,
+      html,
+    });
+  } catch (err) {
+    console.error(`❌ Error sending email to ${to}:`, err);
   }
+};
+
+serve(async (req) => {
+  if (req.method !== "POST") return new Response("Method not allowed", { status: 405 });
 
   try {
     const signature = req.headers.get("stripe-signature")!;
@@ -40,33 +55,38 @@ serve(async (req) => {
 
     console.log(`✅ Received event type: ${event.type}`);
 
+    // Handle checkout.session.completed (optional logging)
     if (event.type === "checkout.session.completed") {
       const session = event.data.object as Stripe.Checkout.Session;
       console.log("Checkout session completed:", session.id);
     }
 
+    // Handle payment_intent.succeeded
     if (event.type === "payment_intent.succeeded") {
       const pi = event.data.object as Stripe.PaymentIntent;
+
+      // Expand charges for transfer data
       const fullPi = await stripe.paymentIntents.retrieve(pi.id, {
         expand: ["charges.data.balance_transaction", "charges.data.transfer_data"],
       });
 
       const md = fullPi.metadata ?? {};
-      console.log("✅ PI succeeded. Metadata:", md);
+      console.log("✅ PaymentIntent succeeded. Metadata:", md);
 
       const amountRupees = (fullPi.amount || 0) / 100;
       const applicationFeeRupees = (fullPi.application_fee_amount || 0) / 100;
+      const providerGross = Math.max(amountRupees - applicationFeeRupees, 0);
 
-      let destinationAccount: string | undefined = (fullPi.transfer_data as any)?.destination || md.provider_account_id;
+      // Determine destination account
+      let destinationAccount: string | undefined =
+        (fullPi.transfer_data as any)?.destination || md.provider_account_id;
       if (!destinationAccount) {
         const ch = fullPi.charges?.data?.[0] as any;
         destinationAccount = ch?.transfer_data?.destination || destinationAccount;
       }
       if (!destinationAccount) console.error("❌ Missing destination account on PI:", fullPi.id);
 
-      const providerGross = Math.max(amountRupees - applicationFeeRupees, 0);
-
-      // OTP valid until interview start + 15 min
+      // Generate OTP valid for 15 minutes after interview start
       const otp = String(Math.floor(100000 + Math.random() * 900000));
       const isoTime = md.time?.length === 5 ? `${md.time}:00` : md.time;
       const interviewStart = new Date(`${md.date}T${isoTime}`);
@@ -106,9 +126,9 @@ serve(async (req) => {
         return new Response("Insert failed", { status: 200 });
       }
 
-      console.log("✅ Candidate inserted with OTP:", inserted);
+      console.log("✅ Candidate inserted:", inserted);
 
-      // --- Fetch room in outer scope ---
+      // Fetch room info if exists
       let room: any = null;
       if (md.roomId) {
         const { data: roomData, error: roomError } = await supabase
@@ -116,113 +136,129 @@ serve(async (req) => {
           .select("user_id, room_name")
           .eq("id", md.roomId)
           .single();
-
         if (roomError) console.error("❌ Could not fetch room:", roomError);
         else room = roomData;
       }
 
-      // --- Candidate OTP ---
+      // --- Send candidate emails ---
       if (md.candidateEmail) {
-        await resend.emails.send({
-          from: "FaceDesk <no-reply@updates.facedesk.co>",
-          to: md.candidateEmail,
-          subject: "Your OTP for Interview Check-In",
-          html: CandidateOTP({ candidateName: md.candidateName, otp, otpExpiry }),
-        });
-      }
+        await sendEmail(
+          md.candidateEmail,
+          "Your OTP for Interview Check-In",
+          CandidateOTP({ candidateName: md.candidateName, otp, otpExpiry })
+        );
 
-      // --- Candidate Confirmation Email (always sent) ---
-      if (md.candidateEmail) {
-        await resend.emails.send({
-          from: "FaceDesk <no-reply@updates.facedesk.co>",
-          to: md.candidateEmail,
-          subject: "Your Interview is Confirmed",
-          html: CandidateConfirmation({
+        await sendEmail(
+          md.candidateEmail,
+          "Your Interview is Confirmed",
+          CandidateConfirmation({
             custom_note: md.custom_note,
             fullName: md.candidateName,
             roomName: room?.room_name ?? "Interview Room",
             date: md.date!,
             time: md.time!,
-          }),
-        });
-        console.log("✅ Candidate confirmation email sent.");
+          })
+        );
+        console.log("✅ Candidate emails sent.");
       }
 
-      // --- Enterprise Booking Confirmation ---
-      if (md.companyUserId) {
-        const { data: enterprisePref, error: prefErr } = await supabase
-          .from("user_preferences")
-          .select("booking_confirmations")
-          .eq("user_id", md.companyUserId)
-          .single();
+// --- Enterprise Booking Confirmation ---
+console.log("userid",md.userIdOfLoggedIn);
 
-        if (prefErr) console.error("❌ Error fetching enterprise preferences:", prefErr);
-        else if (enterprisePref?.booking_confirmations) {
-          const { data: enterpriseUser, error: userErr } = await supabase
-            .from("user_profiles")
-            .select("email")
-            .eq("id", md.companyUserId)
-            .single();
+// --- Enterprise Booking Confirmation ---
+if (md.userIdOfLoggedIn) {
+  console.log("Checking enterprise booking for user ID:", md.userIdOfLoggedIn);
 
-          if (userErr || !enterpriseUser?.email) console.error("❌ Could not fetch enterprise email:", userErr);
-          else {
-            await resend.emails.send({
-              from: "FaceDesk <billing@updates.facedesk.co>",
-              to: enterpriseUser.email,
-              subject: `Booking Confirmed – ${md.candidateName}`,
-              html: EnterpriseBookingConfirmation({
-                booking: {
-                  candidateName: inserted.full_name,
-                  date: inserted.interview_date,
-                  time: inserted.interview_time,
-                  durationHours: inserted.duration,
-                  totalAmount: inserted.price,
-                },
-                platform_fee: inserted.price, // use candidate price
-                roomName: room?.room_name ?? "Interview Room",
-              }),
-            });
-            console.log("✅ Enterprise booking receipt sent.");
-          }
-        } else console.log("Enterprise booking confirmations are OFF.");
-      }
+  // Fetch enterprise preferences
+  const { data: enterprisePrefData, error: prefErr } = await supabase
+    .from("user_preferences")
+    .select("booking_confirmations")
+    .eq("user_id", md.userIdOfLoggedIn)
+    .maybeSingle();
+
+  console.log("Enterprise preference result:", { enterprisePrefData, prefErr });
+
+  if (prefErr) {
+    console.error("❌ Error fetching enterprise preferences:", prefErr);
+  } else if (enterprisePrefData?.booking_confirmations) {
+    // Fetch enterprise user details
+    const { data: enterpriseUserData, error: userErr } = await supabase
+      .from("user_profiles")
+      .select("email, first_name")
+      .eq("id", md.userIdOfLoggedIn)
+      .maybeSingle();
+
+    console.log("Enterprise user data fetched:", enterpriseUserData);
+
+    if (userErr || !enterpriseUserData?.email) {
+      console.error("❌ Could not fetch enterprise email:", userErr);
+    } else {
+      const durationText = formatDuration(inserted.duration);
+      const firstNameToUse = enterpriseUserData.first_name || "there";
+
+      console.log("Using first name in email:", firstNameToUse);
+
+      // Send enterprise booking email
+      await sendEmail(
+        enterpriseUserData.email,
+        `Booking Confirmed – ${md.candidateName}`,
+        EnterpriseBookingConfirmation({
+          booking: {
+            candidateName: inserted.full_name,
+            date: inserted.interview_date,
+            time: inserted.interview_time,
+            duration: durationText,
+            totalAmount: inserted.price,
+          },
+          platform_fee: inserted.price,
+          roomName: room?.room_name ?? "Interview Room",
+          firstName: firstNameToUse,
+        })
+      );
+
+      console.log("✅ Enterprise booking email sent to:", enterpriseUserData.email);
+    }
+  } else {
+    console.log("Enterprise booking confirmations are OFF or preference not found.");
+  }
+}
+
+
 
       // --- Space Provider Alert ---
       if (room?.user_id) {
-        const { data: providerPref, error: providerPrefError } = await supabase
+        const { data: providerPref } = await supabase
           .from("user_preferences")
           .select("booking_confirmations")
           .eq("user_id", room.user_id)
           .single();
 
-        if (providerPrefError) console.error("❌ Error fetching provider preferences:", providerPrefError);
-        else if (providerPref?.booking_confirmations) {
-          const { data: provider, error: providerError } = await supabase
+        if (providerPref?.booking_confirmations) {
+          const { data: provider } = await supabase
             .from("user_profiles")
             .select("email")
             .eq("id", room.user_id)
             .single();
 
-          if (!provider?.email || providerError) console.error("❌ Could not fetch provider email");
-          else {
-            await resend.emails.send({
-              from: "FaceDesk <alerts@updates.facedesk.co>",
-              to: provider.email,
-              subject: `New Booking: ${room.room_name}`,
-              html: SpaceProviderNotification({
+          if (provider?.email) {
+            await sendEmail(
+              provider.email,
+              `New Booking: ${room.room_name}`,
+              SpaceProviderNotification({
                 candidateName: inserted.full_name,
                 room,
-              }),
-            });
-            console.log("✅ Space provider alert email sent.");
+              })
+            );
+            console.log("✅ Space provider email sent.");
           }
         } else console.log("Provider booking confirmations are OFF.");
       }
     }
 
+    // Handle payment failure
     if (event.type === "payment_intent.payment_failed") {
       const pi = event.data.object as Stripe.PaymentIntent;
-      console.warn("Payment failed:", pi.last_payment_error?.message);
+      console.warn("❌ Payment failed:", pi.last_payment_error?.message);
     }
 
     return new Response("OK", { status: 200 });

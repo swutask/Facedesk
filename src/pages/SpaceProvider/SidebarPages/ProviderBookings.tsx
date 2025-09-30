@@ -28,13 +28,7 @@ const resend = new Resend(import.meta.env.VITE_RESEND_API_KEY);
 /* =======================
    Helpers
 ======================= */
-const getDurationHours = (interval: string) => {
-  const match = interval.match(/(\d+):(\d+):(\d+)/);
-  if (!match) return 0;
-  const hours = parseInt(match[1], 10);
-  const minutes = parseInt(match[2], 10);
-  return hours + minutes / 60;
-};
+
 
 const formatCandidateData = (
   data: any[],
@@ -48,7 +42,7 @@ const formatCandidateData = (
 
   return (data || []).map((c) => {
     const startTime = new Date(`1970-01-01T${c.interview_time}`);
-    const durationHours = getDurationHours(c.duration || "00:00:00");
+    const durationHours = Number(c.duration) || 0; // <-- FIXED HERE
     const endTime = new Date(startTime.getTime() + durationHours * 3600000);
     const formatTime = (d: Date) => d.toTimeString().slice(0, 5);
 
@@ -72,12 +66,13 @@ const formatCandidateData = (
       candidate: c.full_name,
       company: companyMap[c.company_user_id] || null,
       status: c.interview_status,
-      amount: price,
+      amount: price, // will now correctly calculate hourlyRate * duration
       hasRecording,
       recordings,
     };
   });
 };
+
 
 const fetchCompanies = async (supabase: any) => {
   const { data, error } = await supabase
