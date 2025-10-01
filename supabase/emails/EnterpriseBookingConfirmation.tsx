@@ -32,7 +32,7 @@ export const EnterpriseBookingConfirmation = ({
             <tr><td style="padding: 8px 0; font-weight: bold;">Candidate Name</td><td>${booking.candidateName}</td></tr>
             <tr><td style="padding: 8px 0; font-weight: bold;">Date & Time</td><td>${formattedDateTime}</td></tr>
             <tr><td style="padding: 8px 0; font-weight: bold;">Duration</td><td>${booking.duration}</td></tr>
-            <tr><td style="padding: 8px 0; font-weight: bold;">Platform Fees</td><td>₹${platform_fee}</td></tr>
+            <tr><td style="padding: 8px 0; font-weight: bold;">Total Fees</td><td>₹${platform_fee}</td></tr>
           </tbody>
         </table>
         

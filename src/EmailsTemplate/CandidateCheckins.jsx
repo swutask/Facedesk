@@ -37,13 +37,7 @@ export const CandidateCheckInConfirmation = ({
           <p style="font-size: 16px; margin-bottom: 16px;"><b>Interview Time:</b> ${formattedTime}</p>
           <p style="font-size: 16px; margin-bottom: 16px;">Please make sure to be present in the interview room on time. We recommend arriving at least 10 minutes early.</p>
 
-          <!-- Confirmation Link -->
-          <p style="font-size: 16px; margin-top: 20px;">
-            <a href="${confirmLink}" 
-               style="background-color: #4F46E5; color: white; padding: 12px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;">
-               Confirm Your Interview
-            </a>
-          </p>
+          
         </div>
         <div style="background: #f3f4f6; padding: 16px; text-align: center; font-size: 13px; color: #6b7280;">
           © ${new Date().getFullYear()} FaceDesk · Secure In-Person Interviews
