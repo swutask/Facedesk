@@ -247,7 +247,8 @@ const ProviderDashboard = () => {
   const formatCandidateData = (data: any[]) => {
     return data.map((c) => {
       const startTime = new Date(`1970-01-01T${c.interview_time}`);
-      const durationHours = getDurationHours(c.duration || "00:00:00");
+      const hourlyRate = Number(c?.room?.pricing?.hourlyRate || "0");
+      const durationHours = parseInt(c.duration || "0", 10);
       const endTime = new Date(startTime.getTime() + durationHours * 3600000);
       console.log("sad", c, startTime, endTime);
       const formatTime = (d: Date) =>

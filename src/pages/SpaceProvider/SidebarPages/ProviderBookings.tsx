@@ -42,11 +42,11 @@ const formatCandidateData = (
 
   return (data || []).map((c) => {
     const startTime = new Date(`1970-01-01T${c.interview_time}`);
-    const durationHours = Number(c.duration) || 0; // <-- FIXED HERE
+    const durationHours = parseInt(c.duration || "0", 10);
     const endTime = new Date(startTime.getTime() + durationHours * 3600000);
     const formatTime = (d: Date) => d.toTimeString().slice(0, 5);
 
-    const hourlyRate = parseFloat(c.room?.pricing?.hourlyRate || "0");
+    const hourlyRate = Number(c?.room?.pricing?.hourlyRate || "0");
     const price = hourlyRate * durationHours;
 
     const recordings = Array.isArray(c.recording_files)
@@ -753,16 +753,49 @@ const handleOtpSubmit = async () => {
         if (enterpriseProfile?.email) {
           const formattedDateTime = `${candidateData.interview_date} ${candidateData.interview_time}`;
 
-          const enterpriseEmail = `
-            <div style="font-family: Arial, sans-serif; line-height:1.5;">
-              <p>Hi ${enterpriseProfile.first_name || "there"},</p>
-              <p>This is to inform you that the candidate who booked the room has successfully checked in.</p>
-              <p><b>Room Name:</b> ${roomName}</p>
-              <p><b>Candidate Name:</b> ${candidateData.full_name}</p>
-              <p><b>Check-In Date & Time:</b> ${formattedDateTime}</p>
-              <p>Please proceed with the necessary arrangements for the candidate.</p>
-              <p>Best regards,<br/>FaceDesk Team</p>
-            </div>
+                    const enterpriseEmail = `
+          <div style="font-family: Arial, sans-serif; background-color: #f9fafb; padding: 20px; color: #111827;">
+  <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.08);">
+    
+    <!-- Header -->
+    <div style="background: linear-gradient(135deg, #059669, #10b981); color: #ffffff; padding: 24px; text-align: center;">
+      <h1 style="margin: 0; font-size: 22px; color: #000000;">Candidate Checked In ✅</h1>
+    </div>
+    
+    <!-- Content -->
+    <div style="padding: 24px; font-size: 15px; line-height: 1.6; color: #374151;">
+      <p>Hi ${enterpriseProfile.first_name || "there"},</p>
+      <p>This is to inform you that the candidate who booked the room has successfully checked in.</p>
+      
+      <table style="width: 100%; border-collapse: collapse; margin-top: 16px; margin-bottom: 16px;">
+        <tbody>
+          <tr>
+            <td style="padding: 8px 0; font-weight: bold; width: 180px;">Room Name</td>
+            <td>${roomName}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; font-weight: bold;">Candidate Name</td>
+            <td>${candidateData.full_name}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; font-weight: bold;">Check-In Date & Time</td>
+            <td>${formattedDateTime}</td>
+          </tr>
+        </tbody>
+      </table>
+      
+      <p>Please proceed with the necessary arrangements for the candidate.</p>
+      <p>Best regards,<br/>FaceDesk Team</p>
+    </div>
+    
+    <!-- Footer -->
+    <div style="background: #f3f4f6; padding: 16px; text-align: center; font-size: 13px; color: #6b7280;">
+      © ${new Date().getFullYear()} FaceDesk · Secure In-Person Interviews
+    </div>
+    
+  </div>
+</div>
+
           `;
 
           await fetch(
@@ -809,15 +842,48 @@ const handleOtpSubmit = async () => {
           const formattedDateTime = `${candidateData.interview_date} ${candidateData.interview_time}`;
 
           const providerEmail = `
-            <div style="font-family: Arial, sans-serif; line-height:1.5;">
-              <p>Hi ${providerProfile.first_name || "there"},</p>
-              <p>We are pleased to inform you that your room has been successfully checked in by the candidate who booked it.</p>
-              <p><b>Room Name:</b> ${roomName}</p>
-              <p><b>Candidate Name:</b> ${candidateData.full_name}</p>
-              <p><b>Check-In Date & Time:</b> ${formattedDateTime}</p>
-              <p>Please ensure the room is prepared and available as required for the candidate.</p>
-              <p>Thank you for your support.<br/>Best regards,<br/>FaceDesk Team</p>
-            </div>
+          <div style="font-family: Arial, sans-serif; background-color: #f9fafb; padding: 20px; color: #111827;">
+  <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.08);">
+    
+    <!-- Header -->
+    <div style="background: linear-gradient(135deg, #059669, #10b981); color: #ffffff; padding: 24px; text-align: center;">
+      <h1 style="margin: 0; font-size: 22px; color: #000000;">Room Checked In 🏢</h1>
+    </div>
+    
+    <!-- Content -->
+    <div style="padding: 24px; font-size: 15px; line-height: 1.6; color: #374151;">
+      <p>Hi ${providerProfile.first_name || "there"},</p>
+      <p>We are pleased to inform you that your room has been successfully checked in by the candidate who booked it.</p>
+      
+      <table style="width: 100%; border-collapse: collapse; margin-top: 16px; margin-bottom: 16px;">
+        <tbody>
+          <tr>
+            <td style="padding: 8px 0; font-weight: bold; width: 180px;">Room Name</td>
+            <td>${roomName}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; font-weight: bold;">Candidate Name</td>
+            <td>${candidateData.full_name}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; font-weight: bold;">Check-In Date & Time</td>
+            <td>${formattedDateTime}</td>
+          </tr>
+        </tbody>
+      </table>
+      
+      <p>Please ensure the room is prepared and available as required for the candidate.</p>
+      <p>Thank you for your support.<br/>Best regards,<br/>FaceDesk Team</p>
+    </div>
+    
+    <!-- Footer -->
+    <div style="background: #f3f4f6; padding: 16px; text-align: center; font-size: 13px; color: #6b7280;">
+      © ${new Date().getFullYear()} FaceDesk · Secure In-Person Interviews
+    </div>
+    
+  </div>
+</div>
+
           `;
 
           await fetch(
